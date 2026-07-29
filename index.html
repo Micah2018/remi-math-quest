@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Remi's Rocket Maths</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy: #171B36;
+    --navy-deep: #0E1129;
+    --panel: #232752;
+    --purple: #7C6CF0;
+    --orange: #FF9F43;
+    --yellow: #FFD93D;
+    --mint: #4ECDC4;
+    --pink: #FF6FA5;
+    --blue: #54A0FF;
+    --cream: #F7F3E9;
+    --star: #FFF6D8;
+    --display: 'Baloo 2', sans-serif;
+    --body: 'Nunito', sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top, #262b58 0%, var(--navy-deep) 70%);
+    font-family: var(--body);
+    color: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* starfield */
+  #stars{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow:hidden;
+  }
+  .star{
+    position:absolute; background: var(--star); border-radius:50%;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  @keyframes twinkle{
+    0%,100%{opacity:.25;}
+    50%{opacity:1;}
+  }
+
+  /* nebula blobs drifting in the background */
+  .nebula{
+    position:absolute; border-radius:50%; filter: blur(50px); opacity:.35;
+    animation: drift 22s ease-in-out infinite;
+  }
+  @keyframes drift{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    50%{ transform: translate(30px,-24px) scale(1.12); }
+  }
+
+  /* background planets, purely decorative */
+  .bg-planet{
+    position:absolute; border-radius:50%; opacity:.5;
+    animation: float-planet 14s ease-in-out infinite;
+  }
+  @keyframes float-planet{
+    0%,100%{ transform: translateY(0px) rotate(0deg); }
+    50%{ transform: translateY(-16px) rotate(8deg); }
+  }
+
+  /* shooting star */
+  .shooting-star{
+    position:absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.1);
+    filter: drop-shadow(0 0 6px #fff);
+  }
+  .shooting-star::before{
+    content:''; position:absolute; top:50%; right:0; width: 90px; height: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,.9), transparent);
+    transform: translateY(-50%);
+  }
+  @keyframes shoot{
+    0%{ transform: translate(0,0); opacity: 1; }
+    100%{ transform: translate(-320px, 220px); opacity: 0; }
+  }
+
+  /* confetti */
+  .confetti-piece{
+    position: fixed; top: -20px; z-index: 50; pointer-events:none;
+    animation-name: confetti-fall; animation-timing-function: linear; animation-fill-mode: forwards;
+  }
+  @keyframes confetti-fall{
+    0%{ transform: translateY(0) rotate(0deg); opacity: 1; }
+    100%{ transform: translateY(105vh) rotate(540deg); opacity: 0; }
+  }
+
+  #app{ position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* header */
+  header{ text-align:center; margin-bottom: 18px; }
+  .eyebrow{
+    font-family: var(--body); font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    font-size: 12px; color: var(--mint); margin: 0 0 6px;
+  }
+  h1{
+    font-family: var(--display); font-weight: 800; font-size: clamp(30px, 7vw, 46px);
+    margin: 0; line-height: 1.05;
+    background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .subhead{ color: #B9BEE8; font-weight:700; margin-top:8px; font-size: 15px; }
+
+  /* rocket progress strip - signature element */
+  .strip{
+    position: relative; height: 90px; margin: 26px 0 8px;
+    background: linear-gradient(180deg, rgba(124,108,240,.15), rgba(124,108,240,.02));
+    border: 2px solid rgba(124,108,240,.35); border-radius: 20px;
+    overflow: hidden;
+  }
+  .strip-track{ position:absolute; inset:0; display:flex; align-items:center; padding: 0 18px; }
+  .checkpoint{
+    position:absolute; top:50%; transform: translate(-50%,-50%);
+    font-size: 26px; opacity:.55; transition: opacity .3s, transform .3s;
+  }
+  .checkpoint.reached{ opacity: 1; transform: translate(-50%,-50%) scale(1.25); }
+  .rocket{
+    position:absolute; top:50%; left: 4%; transform: translate(0,-50%) rotate(90deg);
+    font-size: 34px; transition: left 1.1s cubic-bezier(.34,1.56,.64,1);
+    filter: drop-shadow(0 0 8px rgba(255,159,67,.7));
+  }
+  .rocket.wrong{ animation: bump .4s; }
+  @keyframes bump{ 0%,100%{transform:translate(0,-50%) rotate(90deg);} 50%{transform:translate(-6px,-50%) rotate(80deg);} }
+
+  /* nav / stat bar */
+  .statbar{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom: 22px; }
+  .pill{
+    background: var(--panel); border: 2px solid rgba(255,255,255,.08);
+    padding: 8px 16px; border-radius: 999px; font-weight: 800; font-size: 14px;
+    display:flex; align-items:center; gap:6px;
+  }
+
+  /* mission select cards */
+  .missions{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-top: 10px; }
+  .mission-card{
+    background: var(--panel); border-radius: 22px; padding: 22px 18px;
+    border: 3px solid transparent; cursor: pointer; text-align:left;
+    transition: transform .18s ease, border-color .18s ease;
+    color: var(--cream); font-family: var(--body);
+  }
+  .mission-card:hover{ transform: translateY(-4px); }
+  .mission-card:nth-child(1){ border-color: var(--orange); }
+  .mission-card:nth-child(2){ border-color: var(--mint); }
+  .mission-card:nth-child(3){ border-color: var(--pink); }
+  .mission-card:nth-child(4){ border-color: var(--purple); }
+  .mission-card:nth-child(5){ border-color: var(--yellow); }
+  .mission-card:nth-child(6){ border-color: var(--blue); }
+  .mission-icon{ font-size: 40px; display:block; margin-bottom: 10px; }
+  .mission-title{ font-family: var(--display); font-weight:700; font-size: 22px; margin: 0 0 4px; }
+  .mission-desc{ font-size: 13.5px; color:#C7CBEE; font-weight:600; margin:0; }
+
+  /* game area */
+  .game-panel{
+    background: var(--panel); border-radius: 26px; padding: 30px 24px; margin-top: 6px;
+    border: 2px solid rgba(255,255,255,.08);
+  }
+  .back-btn{
+    background:none; border: none; color: var(--mint); font-weight:800; font-family: var(--body);
+    font-size: 14px; cursor:pointer; padding: 6px 0 14px; display:flex; align-items:center; gap:6px;
+  }
+  .question-wrap{ text-align:center; margin: 10px 0 26px; }
+  .question{
+    font-family: var(--display); font-weight: 800; font-size: clamp(38px, 10vw, 64px);
+    letter-spacing: .02em; color: var(--star);
+  }
+  .question.long-form{ font-size: clamp(22px, 5.2vw, 32px); }
+  .question .digit-highlight{ color: var(--orange); text-decoration: underline; text-underline-offset: 6px; }
+  .prompt-label{ font-weight:800; color: var(--purple); font-size:13px; text-transform:uppercase; letter-spacing:.1em; margin-bottom: 6px;}
+
+  .choices{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 460px; margin: 0 auto; }
+  .choice-btn{
+    font-family: var(--display); font-size: 28px; font-weight: 700;
+    background: var(--navy); color: var(--cream); border: 3px solid rgba(255,255,255,.12);
+    border-radius: 18px; padding: 18px 10px; cursor: pointer;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  }
+  .choice-btn:hover{ transform: translateY(-3px); border-color: var(--purple); }
+  .choice-btn:active{ transform: translateY(0px) scale(.97); }
+  .choice-btn.correct{ background: var(--mint); color: var(--navy-deep); border-color: var(--mint); }
+  .choice-btn.incorrect{ background: var(--pink); color: var(--navy-deep); border-color: var(--pink); }
+
+  .feedback{
+    text-align:center; min-height: 30px; font-weight: 800; font-family: var(--display);
+    font-size: 20px; margin-top: 18px; color: var(--yellow);
+  }
+
+  /* landed screen */
+  .landed{ text-align:center; padding: 20px 0; }
+  .landed .big-emoji{ font-size: 70px; display:block; margin-bottom: 10px; animation: pulse-glow 1.4s ease-in-out infinite; }
+  @keyframes pulse-glow{
+    0%,100%{ transform: scale(1); filter: drop-shadow(0 0 6px rgba(255,217,61,.5)); }
+    50%{ transform: scale(1.12); filter: drop-shadow(0 0 22px rgba(255,217,61,.85)); }
+  }
+  .landed h2{ font-family: var(--display); font-size: 30px; margin: 6px 0; color: var(--yellow); }
+  .landed p{ color:#C7CBEE; font-weight:700; }
+  .again-btn, .home-btn{
+    font-family: var(--display); font-weight:700; font-size: 16px; padding: 12px 26px;
+    border-radius: 14px; border: none; cursor: pointer; margin: 6px;
+  }
+  .again-btn{ background: var(--orange); color: var(--navy-deep); }
+  .home-btn{ background: transparent; color: var(--mint); border: 2px solid var(--mint); }
+
+  footer{ text-align:center; margin-top: 40px; color:#6D72A6; font-size:12px; font-weight:700; }
+
+  /* parent area entry point */
+  #parentLink{
+    position: fixed; top: 14px; right: 14px; z-index: 5;
+    background: rgba(35,39,82,.7); border: 2px solid rgba(255,255,255,.1);
+    color: #B9BEE8; font-family: var(--body); font-weight: 700; font-size: 12px;
+    padding: 7px 12px; border-radius: 999px; cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  #parentLink:hover{ color: var(--cream); border-color: var(--purple); }
+
+  /* parent modal */
+  .parent-overlay{
+    position: fixed; inset: 0; z-index: 100; background: rgba(10,12,28,.82);
+    display:flex; align-items:center; justify-content:center; padding: 20px;
+    backdrop-filter: blur(3px);
+  }
+  .parent-modal{
+    background: var(--panel); border-radius: 22px; border: 2px solid rgba(255,255,255,.1);
+    max-width: 640px; width: 100%; max-height: 86vh; overflow-y: auto;
+    padding: 30px 26px; position: relative; color: var(--cream); font-family: var(--body);
+  }
+  .parent-close{
+    position: absolute; top: 14px; right: 16px; background: none; border: none;
+    color: #B9BEE8; font-size: 26px; cursor: pointer; line-height: 1;
+  }
+  .parent-close:hover{ color: var(--pink); }
+  .parent-heading{ font-family: var(--display); font-size: 24px; margin: 0 0 6px; color: var(--yellow); }
+  .parent-copy{ color:#C7CBEE; font-weight:600; font-size: 14px; margin: 0 0 16px; }
+
+  .pin-input{
+    display:block; width: 100%; max-width: 220px; font-family: var(--display); font-size: 24px;
+    letter-spacing: .3em; text-align:center; padding: 12px; border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.15); background: var(--navy); color: var(--cream); margin-bottom: 12px;
+  }
+  .pin-input:focus{ outline: none; border-color: var(--purple); }
+  .pin-submit{
+    font-family: var(--display); font-weight:700; font-size: 15px; padding: 10px 22px;
+    border-radius: 12px; border:none; background: var(--purple); color: var(--cream); cursor:pointer;
+  }
+  .pin-error{ color: var(--pink); font-weight: 700; font-size: 13px; min-height: 18px; margin-top: 10px; }
+
+  .parent-section{ margin-bottom: 26px; }
+  .parent-section h3{ font-family: var(--display); font-size: 18px; margin: 0 0 10px; color: var(--mint); }
+  .parent-stats{ display:flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .parent-stat{
+    background: var(--navy); border-radius: 14px; padding: 12px 18px; text-align:center; min-width: 90px;
+  }
+  .parent-stat span{ display:block; font-family: var(--display); font-size: 26px; font-weight:800; color: var(--yellow); }
+  .parent-stat label{ font-size: 11px; text-transform: uppercase; letter-spacing:.08em; color:#B9BEE8; font-weight:700; }
+
+  .parent-btn{
+    font-family: var(--body); font-weight: 800; font-size: 13px; padding: 9px 16px;
+    border-radius: 10px; border: 2px solid rgba(255,255,255,.15); background: var(--navy);
+    color: var(--cream); cursor: pointer;
+  }
+  .parent-btn:hover{ border-color: var(--mint); }
+  .parent-btn.danger{ border-color: rgba(255,111,165,.5); color: var(--pink); }
+  .parent-btn.danger:hover{ background: rgba(255,111,165,.1); }
+
+  .missed-table-wrap{ overflow-x:auto; margin-bottom: 12px; }
+  .missed-table{ width:100%; border-collapse: collapse; font-size: 13px; }
+  .missed-table th{
+    text-align:left; color: var(--purple); text-transform: uppercase; letter-spacing:.05em;
+    font-size: 11px; padding: 6px 8px; border-bottom: 2px solid rgba(255,255,255,.1);
+  }
+  .missed-table td{ padding: 8px; border-bottom: 1px solid rgba(255,255,255,.06); color: var(--cream); font-weight:600; }
+  .missed-table tr:hover td{ background: rgba(255,255,255,.03); }
+
+  @media (max-width: 420px){
+    .choices{ grid-template-columns: 1fr 1fr; gap: 10px; }
+    .choice-btn{ font-size: 22px; padding: 14px 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: .001s !important; transition-duration: .001s !important; }
+  }
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div id="app">
+
+  <header>
+    <p class="eyebrow">Mission Control &middot; Cadet Remi</p>
+    <h1>Remi's Rocket Maths</h1>
+    <p class="subhead" id="subhead">Answer questions to fuel the rocket and reach new planets!</p>
+  </header>
+
+  <div class="strip" id="strip">
+    <div class="strip-track">
+      <span class="checkpoint" style="left:4%">🚀</span>
+      <span class="checkpoint" id="cp1" style="left:28%">🌙</span>
+      <span class="checkpoint" id="cp2" style="left:55%">🪐</span>
+      <span class="checkpoint" id="cp3" style="left:80%">☄️</span>
+      <span class="checkpoint" id="cp4" style="left:96%">👽</span>
+    </div>
+    <div class="rocket" id="rocket">🚀</div>
+  </div>
+
+  <div class="statbar">
+    <div class="pill">⭐ <span id="starCount">0</span> stars</div>
+    <div class="pill">🔥 <span id="streakCount">0</span> streak</div>
+    <div class="pill">🏆 Best streak: <span id="bestStreak">0</span></div>
+  </div>
+
+  <button id="parentLink" aria-label="Parent area">⚙️ Parent area</button>
+
+  <div id="home" class="missions">
+    <div class="mission-card" data-mode="times">
+      <span class="mission-icon">✖️</span>
+      <p class="mission-title">Times Table Blaster</p>
+      <p class="mission-desc">All times tables, 1 to 12</p>
+    </div>
+    <div class="mission-card" data-mode="add">
+      <span class="mission-icon">➕</span>
+      <p class="mission-title">Addition Launch</p>
+      <p class="mission-desc">Add numbers up to 20 to power the engines</p>
+    </div>
+    <div class="mission-card" data-mode="sub">
+      <span class="mission-icon">➖</span>
+      <p class="mission-title">Subtraction Landing</p>
+      <p class="mission-desc">Take away numbers to land safely</p>
+    </div>
+    <div class="mission-card" data-mode="place">
+      <span class="mission-icon">🔢</span>
+      <p class="mission-title">Place Value Probe</p>
+      <p class="mission-desc">Expanded form and digit values to 999</p>
+    </div>
+    <div class="mission-card" data-mode="div">
+      <span class="mission-icon">➗</span>
+      <p class="mission-title">Division Dock</p>
+      <p class="mission-desc">Split into equal groups to dock safely</p>
+    </div>
+    <div class="mission-card" data-mode="mult2">
+      <span class="mission-icon">🛰️</span>
+      <p class="mission-title">Big Number Multiply</p>
+      <p class="mission-desc">2-digit &times; 1-digit multiplication</p>
+    </div>
+  </div>
+
+  <div id="game" class="game-panel" style="display:none;">
+    <button class="back-btn" id="backBtn">&larr; Mission select</button>
+    <div class="question-wrap">
+      <p class="prompt-label" id="promptLabel">Times table blaster</p>
+      <div class="question" id="questionText">3 &times; 4</div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback">&nbsp;</div>
+  </div>
+
+  <div id="landed" class="landed" style="display:none;">
+    <span class="big-emoji" id="landedEmoji">👽</span>
+    <h2 id="landedTitle">You reached the alien planet!</h2>
+    <p id="landedText">Amazing work, Cadet Remi. Fly again to explore further!</p>
+    <button class="again-btn" id="againBtn">Blast off again</button>
+    <button class="home-btn" id="homeBtn">Mission select</button>
+  </div>
+
+  <footer>Built for Cadet Remi &middot; Singapore Maths practice &middot; ⭐ keep going, you're doing great</footer>
+</div>
+
+<div id="parentOverlay" class="parent-overlay" style="display:none;">
+  <div class="parent-modal">
+    <button class="parent-close" id="parentClose" aria-label="Close parent area">&times;</button>
+
+    <div id="pinScreen">
+      <h2 class="parent-heading">Parent area</h2>
+      <p class="parent-copy">Enter the PIN to see progress details and reset options.</p>
+      <input type="password" id="pinInput" class="pin-input" inputmode="numeric" maxlength="6" placeholder="PIN">
+      <button class="pin-submit" id="pinSubmit">Unlock</button>
+      <p class="pin-error" id="pinError"></p>
+    </div>
+
+    <div id="parentContent" style="display:none;">
+      <h2 class="parent-heading">Parent area</h2>
+
+      <div class="parent-section">
+        <h3>Progress</h3>
+        <div class="parent-stats">
+          <div class="parent-stat"><span id="pStars">0</span><label>stars</label></div>
+          <div class="parent-stat"><span id="pBest">0</span><label>best streak</label></div>
+          <div class="parent-stat"><span id="pMissed">0</span><label>missed questions</label></div>
+        </div>
+        <button class="parent-btn danger" id="resetBtn">🔄 Reset stars &amp; streak</button>
+      </div>
+
+      <div class="parent-section">
+        <h3>Questions he's got wrong</h3>
+        <p class="parent-copy" id="missedEmpty">No mistakes logged yet &mdash; great sign!</p>
+        <div class="missed-table-wrap">
+          <table class="missed-table" id="missedTable" style="display:none;">
+            <thead>
+              <tr><th>Mission</th><th>Question</th><th>His answer</th><th>Correct</th><th>Times missed</th></tr>
+            </thead>
+            <tbody id="missedBody"></tbody>
+          </table>
+        </div>
+        <button class="parent-btn" id="clearMissedBtn">Clear this list</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- starfield ----------
+  const starsEl = document.getElementById('stars');
+  for(let i=0;i<70;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random()*2.4 + 1;
+    s.style.width = size+'px';
+    s.style.height = size+'px';
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*100+'%';
+    s.style.animationDelay = (Math.random()*3)+'s';
+    starsEl.appendChild(s);
+  }
+
+  // nebula blobs, soft drifting colour washes
+  const nebulaColors = ['#7C6CF0','#FF6FA5','#4ECDC4','#FF9F43'];
+  const nebulaSpots = [
+    { top:'6%', left:'8%', size: 260 },
+    { top:'55%', left:'85%', size: 320 },
+    { top:'80%', left:'12%', size: 220 }
+  ];
+  nebulaSpots.forEach((spot,i) => {
+    const n = document.createElement('div');
+    n.className = 'nebula';
+    n.style.top = spot.top; n.style.left = spot.left;
+    n.style.width = spot.size+'px'; n.style.height = spot.size+'px';
+    n.style.background = nebulaColors[i % nebulaColors.length];
+    n.style.animationDelay = (i*3)+'s';
+    n.style.animationDuration = (18 + i*4)+'s';
+    starsEl.appendChild(n);
+  });
+
+  // decorative background planets
+  const bgPlanets = [
+    { top:'10%', left:'85%', size: 46, gradient: 'radial-gradient(circle at 35% 30%, #FFD93D, #FF9F43 70%)' },
+    { top:'70%', left:'6%', size: 36, gradient: 'radial-gradient(circle at 35% 30%, #4ECDC4, #54A0FF 70%)' },
+    { top:'30%', left:'2%', size: 22, gradient: 'radial-gradient(circle at 35% 30%, #FF6FA5, #7C6CF0 70%)' }
+  ];
+  bgPlanets.forEach((p,i) => {
+    const el = document.createElement('div');
+    el.className = 'bg-planet';
+    el.style.top = p.top; el.style.left = p.left;
+    el.style.width = p.size+'px'; el.style.height = p.size+'px';
+    el.style.background = p.gradient;
+    el.style.animationDelay = (i*1.6)+'s';
+    starsEl.appendChild(el);
+  });
+
+  // occasional shooting stars
+  function spawnShootingStar(){
+    const s = document.createElement('div');
+    s.className = 'shooting-star';
+    s.style.top = (Math.random()*40)+'%';
+    s.style.left = (40 + Math.random()*55)+'%';
+    s.style.animation = 'shoot ' + (0.9 + Math.random()*0.6) + 's linear forwards';
+    starsEl.appendChild(s);
+    setTimeout(() => s.remove(), 1600);
+  }
+  setInterval(() => { if(Math.random() < 0.6) spawnShootingStar(); }, 3200);
+  setTimeout(spawnShootingStar, 1000);
+
+  // ---------- confetti ----------
+  const CONFETTI_COLORS = ['#FF9F43','#FFD93D','#4ECDC4','#FF6FA5','#7C6CF0','#54A0FF'];
+  function launchConfetti(){
+    const count = 70;
+    for(let i=0;i<count;i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const size = 6 + Math.random()*8;
+      const isCircle = Math.random() < 0.4;
+      piece.style.width = size+'px';
+      piece.style.height = (isCircle ? size : size*1.6)+'px';
+      piece.style.background = CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)];
+      piece.style.borderRadius = isCircle ? '50%' : '2px';
+      piece.style.left = (Math.random()*100)+'vw';
+      const duration = 2 + Math.random()*1.6;
+      const delay = Math.random()*0.4;
+      piece.style.animationDuration = duration+'s';
+      piece.style.animationDelay = delay+'s';
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), (duration+delay)*1000 + 200);
+    }
+  }
+
+  // ---------- state ----------
+  const PARENT_PIN = '1234'; // change this before publishing if you want a different PIN
+  let mode = null;
+  let streak = 0;
+  let stars = 0;
+  let bestStreak = 0;
+  let current = null;
+  let checkpointsReached = 0;
+  let mistakes = {}; // key: mode|questionLabel -> {mode, questionLabel, correctAnswer, wrongAnswer, count}
+  const CHECKPOINTS = [28, 55, 80, 96]; // % positions matching markers, at streak 2,4,6,8
+  const CHECKPOINT_STREAKS = [2, 4, 6, 8];
+
+  const STORAGE_KEY = 'remiRocketMathsState';
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ stars, bestStreak, mistakes }));
+    }catch(e){ /* storage unavailable, progress stays session-only */ }
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        stars = parsed.stars || 0;
+        bestStreak = parsed.bestStreak || 0;
+        mistakes = parsed.mistakes || {};
+      }
+    }catch(e){ /* storage unavailable, start fresh */ }
+  }
+  loadState();
+
+  const homeEl = document.getElementById('home');
+  const gameEl = document.getElementById('game');
+  const landedEl = document.getElementById('landed');
+  const rocketEl = document.getElementById('rocket');
+  const questionText = document.getElementById('questionText');
+  const choicesEl = document.getElementById('choices');
+  const feedbackEl = document.getElementById('feedback');
+  const promptLabel = document.getElementById('promptLabel');
+  const subhead = document.getElementById('subhead');
+
+  const modeMeta = {
+    times: { label: 'Times table blaster', encouragement: 'times tables', icon:'✖️' },
+    add:   { label: 'Addition launch', encouragement: 'addition', icon:'➕' },
+    sub:   { label: 'Subtraction landing', encouragement: 'subtraction', icon:'➖' },
+    place: { label: 'Place value probe', encouragement: 'place value', icon:'🔢' },
+    div:   { label: 'Division dock', encouragement: 'division', icon:'➗' },
+    mult2: { label: 'Big number multiply', encouragement: '2-digit multiplication', icon:'🛰️' }
+  };
+
+  // ---------- question generators ----------
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function makeQuestion(){
+    if(mode === 'times'){
+      const tables = [1,2,3,4,5,6,7,8,9,10,11,12];
+      const a = tables[randInt(0,tables.length-1)];
+      const b = randInt(1,12);
+      return { text: a + ' \u00D7 ' + b, answer: a*b, spread: 15 };
+    }
+    if(mode === 'add'){
+      const a = randInt(1,15);
+      const b = randInt(1, Math.max(1, 20-a));
+      return { text: a + ' + ' + b, answer: a+b, spread: 5 };
+    }
+    if(mode === 'sub'){
+      // subtraction, keep result >= 0, within 20
+      const a = randInt(5,20);
+      const b = randInt(0,a);
+      return { text: a + ' \u2212 ' + b, answer: a-b, spread: 5 };
+    }
+    if(mode === 'div'){
+      const divisors = [2,3,4,5,6,7,8,9,10,11,12];
+      const d = divisors[randInt(0,divisors.length-1)];
+      const q = randInt(1,12);
+      const total = d*q;
+      return { text: total + ' \u00F7 ' + d, answer: q, spread: 3 };
+    }
+    if(mode === 'mult2'){
+      const a = randInt(11,49);
+      const b = randInt(2,5);
+      return { text: a + ' \u00D7 ' + b, answer: a*b, spread: 15 };
+    }
+    if(mode === 'place'){
+      // two subtypes: expanded form -> standard form, or value of a digit
+      if(Math.random() < 0.5){
+        const h = randInt(1,9), t = randInt(0,9), o = randInt(0,9);
+        const answer = h*100 + t*10 + o;
+        return { text: h*100 + ' + ' + t*10 + ' + ' + o, answer, spread: 40 };
+      } else {
+        const digits = [randInt(1,9), randInt(0,9), randInt(0,9)];
+        // avoid leading zero already guaranteed by digits[0] >=1
+        const number = digits[0]*100 + digits[1]*10 + digits[2];
+        const placeIndex = randInt(0,2); // 0=hundreds,1=tens,2=ones
+        const digit = digits[placeIndex];
+        const placeValue = [100,10,1][placeIndex];
+        const answer = digit * placeValue;
+        const numStr = String(number).padStart(3,'0');
+        const highlighted = numStr.split('').map((ch,i) =>
+          i === placeIndex ? '<span class="digit-highlight">'+ch+'</span>' : ch
+        ).join('');
+        const decoyPool = [digit, digit*10, digit*100, digit*1000].filter((v,i,arr) => arr.indexOf(v)===i);
+        return {
+          html: 'Value of ' + highlighted,
+          plainText: 'Value of ' + digit + ' in ' + numStr,
+          answer,
+          customPool: decoyPool,
+          longForm: true
+        };
+      }
+    }
+  }
+
+  function makeChoices(q){
+    const correct = q.answer;
+    const set = new Set([correct]);
+    if(q.customPool){
+      const pool = q.customPool.filter(v => v !== correct);
+      // shuffle pool then take from it first
+      for(let i=pool.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [pool[i],pool[j]] = [pool[j],pool[i]];
+      }
+      for(const v of pool){ if(set.size>=4) break; set.add(v); }
+    }
+    while(set.size < 4){
+      const spread = q.spread || 5;
+      const decoy = correct + randInt(-spread, spread);
+      if(decoy >= 0 && decoy !== correct) set.add(decoy);
+    }
+    const arr = Array.from(set);
+    // shuffle
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function renderQuestion(){
+    current = makeQuestion();
+    questionText.classList.toggle('long-form', !!current.longForm);
+    if(current.html){
+      questionText.innerHTML = current.html;
+    } else {
+      questionText.textContent = current.text;
+    }
+    const opts = makeChoices(current);
+    choicesEl.innerHTML = '';
+    opts.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleAnswer(opt, btn));
+      choicesEl.appendChild(btn);
+    });
+    feedbackEl.textContent = '\u00A0';
+  }
+
+  const RIGHT_MSGS = ['Blast off! 🚀','Nice one, Remi! ⭐','Booster power! 🔥','You got it! 🌟','Full speed ahead! 💫'];
+  const WRONG_MSGS = ['Small bump — try again! 🌠','Almost, Cadet! Give it another go.','Not quite — you can do it!'];
+
+  function handleAnswer(val, btn){
+    const buttons = Array.from(choicesEl.children);
+    buttons.forEach(b => b.disabled = true);
+
+    if(val === current.answer){
+      btn.classList.add('correct');
+      streak++;
+      stars++;
+      if(streak > bestStreak) bestStreak = streak;
+      feedbackEl.style.color = 'var(--mint)';
+      feedbackEl.textContent = RIGHT_MSGS[randInt(0, RIGHT_MSGS.length-1)];
+      moveRocket();
+      updateStats();
+      setTimeout(() => {
+        if(checkpointsReached >= CHECKPOINT_STREAKS.length){
+          showLanded();
+        } else {
+          renderQuestion();
+        }
+      }, 850);
+    } else {
+      btn.classList.add('incorrect');
+      buttons.forEach(b => { if(parseInt(b.textContent) === current.answer) b.classList.add('correct'); });
+      streak = 0;
+      feedbackEl.style.color = 'var(--pink)';
+      feedbackEl.textContent = WRONG_MSGS[randInt(0, WRONG_MSGS.length-1)];
+      rocketEl.classList.add('wrong');
+      logMistake(val);
+      updateStats();
+      setTimeout(() => {
+        rocketEl.classList.remove('wrong');
+        renderQuestion();
+      }, 1000);
+    }
+  }
+
+  function logMistake(wrongAnswer){
+    const label = current.plainText || current.text;
+    const key = mode + '|' + label;
+    if(mistakes[key]){
+      mistakes[key].count++;
+      mistakes[key].wrongAnswer = wrongAnswer;
+    } else {
+      mistakes[key] = {
+        mode: mode,
+        questionLabel: label,
+        correctAnswer: current.answer,
+        wrongAnswer: wrongAnswer,
+        count: 1
+      };
+    }
+    saveState();
+  }
+
+  function moveRocket(){
+    if(checkpointsReached < CHECKPOINT_STREAKS.length && streak >= CHECKPOINT_STREAKS[checkpointsReached]){
+      const pct = CHECKPOINTS[checkpointsReached];
+      rocketEl.style.left = pct + '%';
+      const cp = document.getElementById('cp' + (checkpointsReached+1));
+      if(cp) cp.classList.add('reached');
+      checkpointsReached++;
+    } else if(checkpointsReached < CHECKPOINTS.length) {
+      // small nudge forward proportional to streak progress toward next checkpoint
+      const prevPct = checkpointsReached === 0 ? 4 : CHECKPOINTS[checkpointsReached-1];
+      const nextPct = CHECKPOINTS[checkpointsReached];
+      const prevStreak = checkpointsReached === 0 ? 0 : CHECKPOINT_STREAKS[checkpointsReached-1];
+      const nextStreak = CHECKPOINT_STREAKS[checkpointsReached];
+      const frac = (streak - prevStreak) / (nextStreak - prevStreak);
+      const pct = prevPct + (nextPct - prevPct) * Math.min(Math.max(frac,0),1);
+      rocketEl.style.left = pct + '%';
+    }
+  }
+
+  function resetRocket(){
+    rocketEl.style.left = '4%';
+    checkpointsReached = 0;
+    streak = 0;
+    document.querySelectorAll('.checkpoint').forEach(c => c.classList.remove('reached'));
+  }
+
+  function updateStats(){
+    document.getElementById('starCount').textContent = stars;
+    document.getElementById('streakCount').textContent = streak;
+    document.getElementById('bestStreak').textContent = bestStreak;
+    saveState();
+  }
+
+  function showLanded(){
+    gameEl.style.display = 'none';
+    landedEl.style.display = 'block';
+    document.getElementById('landedEmoji').textContent = '👽';
+    document.getElementById('landedTitle').textContent = 'Mission complete! You reached the alien planet!';
+    document.getElementById('landedText').textContent =
+      'Incredible ' + modeMeta[mode].encouragement + ' skills, Cadet Remi. ' + stars + ' stars collected so far.';
+    launchConfetti();
+  }
+
+  function startMode(m){
+    mode = m;
+    resetRocket();
+    promptLabel.textContent = modeMeta[m].label;
+    subhead.textContent = 'Answer questions to fuel the rocket and reach new planets!';
+    homeEl.style.display = 'none';
+    landedEl.style.display = 'none';
+    gameEl.style.display = 'block';
+    updateStats();
+    renderQuestion();
+  }
+
+  function goHome(){
+    mode = null;
+    gameEl.style.display = 'none';
+    landedEl.style.display = 'none';
+    homeEl.style.display = 'grid';
+    resetRocket();
+    updateStats();
+  }
+
+  document.querySelectorAll('.mission-card').forEach(card => {
+    card.addEventListener('click', () => startMode(card.dataset.mode));
+  });
+  document.getElementById('backBtn').addEventListener('click', goHome);
+  document.getElementById('homeBtn').addEventListener('click', goHome);
+  document.getElementById('againBtn').addEventListener('click', () => startMode(mode));
+
+  // ---------- parent area ----------
+  const parentOverlay = document.getElementById('parentOverlay');
+  const pinScreen = document.getElementById('pinScreen');
+  const parentContent = document.getElementById('parentContent');
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+  let parentUnlocked = false;
+
+  function openParent(){
+    parentOverlay.style.display = 'flex';
+    if(parentUnlocked){
+      showParentContent();
+    } else {
+      pinScreen.style.display = 'block';
+      parentContent.style.display = 'none';
+      pinInput.value = '';
+      pinError.textContent = '';
+      setTimeout(() => pinInput.focus(), 50);
+    }
+  }
+  function closeParent(){
+    parentOverlay.style.display = 'none';
+  }
+  function checkPin(){
+    if(pinInput.value === PARENT_PIN){
+      parentUnlocked = true;
+      showParentContent();
+    } else {
+      pinError.textContent = 'That PIN is not right, try again.';
+      pinInput.value = '';
+      pinInput.focus();
+    }
+  }
+  function showParentContent(){
+    pinScreen.style.display = 'none';
+    parentContent.style.display = 'block';
+    renderParentContent();
+  }
+
+  function renderParentContent(){
+    document.getElementById('pStars').textContent = stars;
+    document.getElementById('pBest').textContent = bestStreak;
+    const entries = Object.values(mistakes).sort((a,b) => b.count - a.count);
+    document.getElementById('pMissed').textContent = entries.length;
+
+    const table = document.getElementById('missedTable');
+    const emptyMsg = document.getElementById('missedEmpty');
+    const body = document.getElementById('missedBody');
+    body.innerHTML = '';
+
+    if(entries.length === 0){
+      table.style.display = 'none';
+      emptyMsg.style.display = 'block';
+    } else {
+      table.style.display = 'table';
+      emptyMsg.style.display = 'none';
+      entries.forEach(e => {
+        const tr = document.createElement('tr');
+        const missionLabel = (modeMeta[e.mode] && modeMeta[e.mode].label) || e.mode;
+        tr.innerHTML =
+          '<td>' + missionLabel + '</td>' +
+          '<td>' + e.questionLabel + '</td>' +
+          '<td>' + e.wrongAnswer + '</td>' +
+          '<td>' + e.correctAnswer + '</td>' +
+          '<td>' + e.count + '</td>';
+        body.appendChild(tr);
+      });
+    }
+  }
+
+  document.getElementById('parentLink').addEventListener('click', openParent);
+  document.getElementById('parentClose').addEventListener('click', closeParent);
+  parentOverlay.addEventListener('click', (e) => { if(e.target === parentOverlay) closeParent(); });
+  document.getElementById('pinSubmit').addEventListener('click', checkPin);
+  pinInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') checkPin(); });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if(confirm('Reset stars, streak and best streak back to zero? This will not clear the missed-questions list.')){
+      stars = 0;
+      bestStreak = 0;
+      resetRocket();
+      updateStats();
+      renderParentContent();
+    }
+  });
+  document.getElementById('clearMissedBtn').addEventListener('click', () => {
+    if(confirm('Clear the list of missed questions?')){
+      mistakes = {};
+      saveState();
+      renderParentContent();
+    }
+  });
+
+  // reflect any restored progress on first paint
+  updateStats();
+
+})();
+</script>
+</body>
+</html>
